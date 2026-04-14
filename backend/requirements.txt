@@ -1,0 +1,39 @@
+# Core RAG
+langchain
+langchain-community
+langchain-core
+langchain-text-splitters
+langchain-huggingface
+chromadb
+sentence-transformers
+pypdf
+
+# LLM
+groq
+langchain-groq
+
+# Hybrid retrieval
+elasticsearch==8.13.0
+
+# Reranking
+cohere
+
+# Observability
+langsmith
+
+# Config
+python-dotenv
+
+# ── FastAPI ────────────────────────────────────────────────────────────────
+fastapi
+uvicorn[standard]
+python-multipart        # required for UploadFile to work
+
+# ── Phase 6: Evaluation ────────────────────────────────────────────────────
+ragas
+datasets
+
+# ── Phase 7: CI / Dev tooling ─────────────────────────────────────────────
+pytest
+httpx                   # FastAPI TestClient
+ruff

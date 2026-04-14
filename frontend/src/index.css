@@ -1,0 +1,95 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #ffffff;
+  --bg-subtle:  #f8f7f4;
+  --bg-muted:   #f1efe8;
+  --text:       #1a1a18;
+  --text-2:     #5f5e5a;
+  --text-3:     #88877f;
+  --border:     rgba(0,0,0,0.09);
+  --border-2:   rgba(0,0,0,0.16);
+  --green:      #1D9E75;
+  --green-bg:   #E1F5EE;
+  --green-text: #085041;
+  --blue:       #185FA5;
+  --blue-bg:    #E6F1FB;
+  --blue-text:  #0C447C;
+  --purple:     #534AB7;
+  --purple-bg:  #EEEDFE;
+  --purple-text:#3C3489;
+  --amber:      #BA7517;
+  --amber-bg:   #FAEEDA;
+  --amber-text: #633806;
+  --red:        #A32D2D;
+  --red-bg:     #FCEBEB;
+  --red-border: #F09595;
+  --r:          8px;
+  --rl:         12px;
+  --rxl:        16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:         #1c1c1a;
+    --bg-subtle:  #242422;
+    --bg-muted:   #2c2c2a;
+    --text:       #e8e6df;
+    --text-2:     #9c9a92;
+    --text-3:     #6b6963;
+    --border:     rgba(255,255,255,0.08);
+    --border-2:   rgba(255,255,255,0.15);
+    --green-bg:   #04342C;
+    --green-text: #9FE1CB;
+    --blue-bg:    #042C53;
+    --blue-text:  #B5D4F4;
+    --purple-bg:  #26215C;
+    --purple-text:#CECBF6;
+    --amber-bg:   #412402;
+    --amber-text: #FAC775;
+    --red-bg:     #501313;
+    --red-border: #791F1F;
+  }
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif;
+  background: var(--bg-subtle);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  border: none;
+  background: none;
+}
+
+input, textarea {
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fade-in 0.25s ease forwards; }

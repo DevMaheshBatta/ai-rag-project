@@ -1,0 +1,26 @@
+[
+  {
+    "question": "What is Dev Mahesh Batta's current educational institution?",
+    "ground_truth": "DA V Institute Of Engineering and Technology",
+    "context": "Dev Mahesh Batta\n\u2642phone8360924774 /envel\u2322pedevmaheshbatta@gmail.com /linkedinlinkedin.com/in/Dev /githubgithub.com/dev\nCore Skills\nT echnical Areas: Machine Learning ,Deep Learning ,Object Oriented Programming,Data Structures Algorithm,Operating\nSystem,Design and Analysis of Algorithms,Data Base Management System,Cloud Computing,Data Science,Compiler\nDesign,Computer Networks\nProgramming Language : C,C++,Python,HTML,CSS\nDatabase Management : MYSQL ,MongoDB\nLibraries F rameworks : Pandas ,Numpy,PyTorch,Django REST Framework, Bootstrap\nT ools Platforms : GitHub,Jupyter Notebooks,Google Colab,VS Code\nEducation\nDA V Institute Of Engineering and T echnology , Jalandhar Aug. 2022 \u2013 Present\nBachelor of Technology in Computer Science CGPA- 7.80",
+    "source": "data\\sample.pdf"
+  },
+  {
+    "question": "What programming languages were used in the Doctor Consultation Web Application project?",
+    "ground_truth": "Python, Flask",
+    "context": "Bachelor of Technology in Computer Science CGPA- 7.80\nPolice D.A.V Public School, Ludhiana Apr 2021\u2013 Jul 2022\nClass XII- (Senior Secondary Examination) CBSE- Percentage- 86.20%\nProjects\nAI Interview Copilot | React.js, FastAPI, PostgreSQL, LLM, Generative AI\n\u2022 Built a full-stack AI interview prep tool using React.js and FastAPI, integrating LLM APIs for real-time question\ngeneration and automated answer evaluation.\n\u2022 Designed RESTful APIs for frontend-backend communication; implemented JWT authentication and PostgreSQL\n(Supabase) for persistent session and history storage.\n\u2022 Deployed on Render and Vercel; resolved production issues including CORS errors, API failures, and database\nmisconfiguration.\nDoctor Consultation W eb Application | Python, Flask, MongoDB",
+    "source": "data\\sample.pdf"
+  },
+  {
+    "question": "What percentage of manual coordination overhead was reduced by the real-time patient-doctor consultation platform?",
+    "ground_truth": "80%",
+    "context": "misconfiguration.\nDoctor Consultation W eb Application | Python, Flask, MongoDB\n\u2022 Built a real-time patient-doctor consultation platform with automated scheduling, reducing manual coordination\noverhead by 80%.\n\u2022 Secured patient records using MongoDB encryption; maintained 99.9% uptime with scalable, HIPAA-aligned\narchitecture.\n\u2022 Streamlined doctor onboarding with Flask, cutting setup time by 60% and improving platform adoption speed.\nEcommerce W ebsite | Python, Django, SQLite/MySQL\n\u2022 Developed core ecommerce features in Django \u2014 product catalog, cart, authentication, and checkout with secure order\nprocessing.\n\u2022 Built a role-based admin panel cutting management effort by 50%; added search and filtering that improved product\ndiscovery speed by 40%.",
+    "source": "data\\sample.pdf"
+  },
+  {
+    "question": "When did the user complete the HackerRank Python(Basics) certification?",
+    "ground_truth": "Jul 2024",
+    "context": "discovery speed by 40%.\n\u2022 Optimized backend queries and frontend responsiveness to achieve 90+ Google Lighthouse performance scores across\nmobile and desktop.\nCertification/Badges\n\u2022 Django Web FrameWork /external-link-altFeb 2025\n\u2022 HackerRank Python(Basics) /external-link-altJul 2024\n\u2022 HackerRank SQL(Basics) /external-link-altJul 2024\n\u2022 Machine Learning Specialization /external-link-altJun 2024 \u2013 Aug 2024\nCompleted the Coursera Machine learning specialization consisting of following 3 courses:\n1.Supervised Learning \u2013 Regression, classification, overfitting, bias-variance tradeoff\n2.Advanced Learning Algorithms \u2013 Neural networks, deep learning, decision trees\n3.Unsupervised Learning \u2013 Clustering, PCA, collaborative filtering, reinforcement learning\n\u2022 100 Day Leet code Badge",
+    "source": "data\\sample.pdf"
+  }
+]

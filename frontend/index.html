@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RAG System</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f11;
+  --bg2:#16161a;
+  --bg3:#1c1c22;
+  --bg4:#222228;
+  --surface:#1a1a20;
+  --surface2:#202028;
+  --text:#e8e6f0;
+  --text2:#9896a8;
+  --text3:#5a5870;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.1);
+  --border3:rgba(255,255,255,0.16);
+  --accent:#7c6af7;
+  --accent2:#9d8ff8;
+  --accent-bg:rgba(124,106,247,0.12);
+  --accent-glow:rgba(124,106,247,0.25);
+  --green:#22c98a;
+  --green-bg:rgba(34,201,138,0.1);
+  --green-t:#22c98a;
+  --blue:#3b9eff;
+  --blue-bg:rgba(59,158,255,0.1);
+  --blue-t:#3b9eff;
+  --amber:#f5a623;
+  --amber-bg:rgba(245,166,35,0.1);
+  --amber-t:#f5a623;
+  --purple:#a78bfa;
+  --purple-bg:rgba(167,139,250,0.1);
+  --purple-t:#a78bfa;
+  --red:#f87171;
+  --red-bg:rgba(248,113,113,0.1);
+  --red-b:rgba(248,113,113,0.3);
+  --r:10px;--rl:14px;--rxl:20px;
+}
+html,body,#root{height:100%;overflow:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{cursor:pointer;font-family:inherit;font-size:13px;border:none;background:none;color:inherit}
+input,textarea{font-family:inherit;font-size:14px;outline:none;color:inherit}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px var(--accent-glow)}50%{box-shadow:0 0 40px var(--accent-glow),0 0 60px rgba(124,106,247,0.1)}}
+
+.fade{animation:fadein .3s ease forwards}
+
+/* Noise texture overlay */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:.4;
+}
+
+.layout{display:flex;height:100vh;position:relative;z-index:1}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:220px;flex-shrink:0;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:20px 12px;
+  position:relative;
+}
+.sidebar::after{
+  content:'';position:absolute;top:0;right:-1px;width:1px;height:100%;
+  background:linear-gradient(to bottom,transparent,rgba(124,106,247,0.3),transparent);
+}
+.logo{padding:4px 8px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.logo-title{font-size:16px;font-weight:600;letter-spacing:-.02em;
+  background:linear-gradient(135deg,#e8e6f0,#a78bfa);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;
+  border-radius:var(--r);border:1px solid transparent;
+  color:var(--text2);font-size:13px;font-weight:400;
+  width:100%;text-align:left;transition:all .15s;margin-bottom:2px;
+}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{
+  color:var(--text);background:var(--accent-bg);
+  border-color:rgba(124,106,247,0.25);
+}
+.nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.status-bar{
+  margin-top:auto;padding:12px 8px 0;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.status-dot.online{background:var(--green);animation:pulse 2.5s ease-in-out infinite;
+  box-shadow:0 0 8px rgba(34,201,138,0.5)}
+.status-dot.offline{background:var(--red)}
+
+/* ── MAIN ── */
+.main{flex:1;overflow:auto;background:var(--bg);display:flex;flex-direction:column}
+.topbar{
+  padding:16px 28px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);position:sticky;top:0;z-index:10;
+  backdrop-filter:blur(12px);
+}
+.topbar-title{font-size:15px;font-weight:500;letter-spacing:-.01em}
+.topbar-sub{font-size:12px;color:var(--text3);margin-top:1px}
+.content{padding:28px;flex:1}
+
+/* ── COMPONENTS ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--rl);overflow:hidden;
+}
+.card-glow{
+  background:var(--surface);border:1px solid rgba(124,106,247,0.2);
+  border-radius:var(--rl);
+  box-shadow:0 0 30px rgba(124,106,247,0.05),inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.section-label{
+  font-size:10px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text3);margin-bottom:10px;
+}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;
+  white-space:nowrap;
+}
+.btn-primary{
+  padding:10px 20px;border-radius:var(--r);
+  background:var(--accent);color:#fff;font-weight:500;font-size:13px;
+  border:none;transition:all .15s;letter-spacing:-.01em;
+}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-1px);
+  box-shadow:0 4px 20px var(--accent-glow)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{background:var(--bg4);color:var(--text3);transform:none;box-shadow:none}
+.btn-ghost{
+  padding:8px 14px;border-radius:var(--r);
+  background:transparent;color:var(--text2);font-size:12px;
+  border:1px solid var(--border2);transition:all .15s;
+}
+.btn-ghost:hover{background:var(--bg3);color:var(--text);border-color:var(--border3)}
+.input{
+  width:100%;padding:12px 16px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--r);color:var(--text);font-size:14px;
+  transition:border-color .15s,box-shadow .15s;
+}
+.input:focus{border-color:rgba(124,106,247,0.5);
+  box-shadow:0 0 0 3px rgba(124,106,247,0.1)}
+.input::placeholder{color:var(--text3)}
+.tag-pass{background:var(--green-bg);color:var(--green-t);border:1px solid rgba(34,201,138,0.2)}
+.tag-fail{background:var(--red-bg);color:var(--red);border:1px solid var(--red-b)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback} = React;
+const API = window.RAG_API_BASE || "http://localhost:8000";
+
+async function req(method,path,body,isForm=false){
+  const headers=isForm?{}:{"Content-Type":"application/json"};
+  const res=await fetch(API+path,{method,headers,body:isForm?body:body?JSON.stringify(body):undefined});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.detail||`HTTP ${res.status}`);
+  return data;
+}
+const api={
+  health:    ()     => req("GET","/health"),
+  upload:    (file) => {const fd=new FormData();fd.append("files",file);return req("POST","/upload/",fd,true)},
+  query:     (q)    => req("POST","/query/",{question:q}),
+  documents: ()     => req("GET","/documents/"),
+  deleteDoc: (id)   => req("DELETE",`/documents/${id}`),
+  evalLatest:()     => req("GET","/eval/latest"),
+};
+const traceStore=[];
+
+/* ── SVG Icons ── */
+const Icon={
+  search:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="6.5" cy="6.5" r="4"/><path d="M11 11l3 3"/></svg>,
+  file:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 1H3a1 1 0 00-1 1v12a1 1 0 001 1h10a1 1 0 001-1V6L9 1z"/><path d="M9 1v5h5"/></svg>,
+  flask:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2h4M7 2v5l-4 7h10l-4-7V2"/></svg>,
+  chart:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M2 12l4-4 3 3 5-6"/></svg>,
+  trash:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10"/></svg>,
+  send:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2L7 9M14 2L9 14l-2-5-5-2 12-5z"/></svg>,
+  refresh:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M13.5 8A5.5 5.5 0 112.6 5M2 2v3.5H5.5"/></svg>,
+  check:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8l4 4 6-6"/></svg>,
+  x:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>,
+  upload:<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 10V3M5 6l3-3 3 3"/><path d="M3 11v1a1 1 0 001 1h8a1 1 0 001-1v-1"/></svg>,
+};
+
+/* ── Sidebar ── */
+const NAV=[
+  {id:"query",     label:"Query",      icon:Icon.search, dot:"var(--accent)"},
+  {id:"documents", label:"Documents",  icon:Icon.file,   dot:"var(--blue)"},
+  {id:"eval",      label:"Evaluation", icon:Icon.flask,  dot:"var(--purple)"},
+  {id:"traces",    label:"Traces",     icon:Icon.chart,  dot:"var(--amber)"},
+];
+function Sidebar({page,setPage,health}){
+  const online=health?.status==="ok";
+  return(
+    <aside className="sidebar">
+      <div className="logo">
+        <div className="logo-title">RAG System</div>
+        <div className="logo-sub">Production pipeline</div>
+      </div>
+      {NAV.map(({id,label,icon,dot})=>(
+        <button key={id} onClick={()=>setPage(id)} className={`nav-item${page===id?" active":""}`}>
+          <span className="nav-dot" style={{background:page===id?dot:"var(--text3)"}}/>
+          <span className="nav-icon">{icon}</span>
+          {label}
+        </button>
+      ))}
+      <div className="status-bar">
+        <span className={`status-dot ${online?"online":"offline"}`}/>
+        <span style={{fontSize:11,color:"var(--text3)"}}>
+          {online?`${health.indexed_docs} doc${health.indexed_docs!==1?"s":""} indexed`:"Backend offline"}
+        </span>
+      </div>
+    </aside>
+  );
+}
+
+/* ── Pipeline Step Bar ── */
+const STEPS=[
+  {key:"vector", label:"Vector",  color:"var(--blue)"},
+  {key:"bm25",   label:"BM25",    color:"var(--green)"},
+  {key:"rrf",    label:"RRF",     color:"var(--purple)"},
+  {key:"rerank", label:"Rerank",  color:"var(--amber)"},
+  {key:"llm",    label:"LLM",     color:"var(--accent)"},
+];
+function PipelineBar({latencies}){
+  if(!latencies) return null;
+  const total=latencies.total||1;
+  return(
+    <div className="card" style={{padding:"16px 20px"}}>
+      <div className="section-label">Pipeline trace</div>
+      <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:14,flexWrap:"wrap"}}>
+        {STEPS.map((s,i)=>(
+          <React.Fragment key={s.key}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+              <div style={{
+                fontSize:11,fontWeight:500,padding:"4px 12px",borderRadius:20,
+                background:`${s.color}18`,color:s.color,
+                border:`1px solid ${s.color}30`,
+              }}>{s.label}</div>
+              <span style={{fontSize:10,color:"var(--text3)",fontVariantNumeric:"tabular-nums"}}>{latencies[s.key]||0}ms</span>
+            </div>
+            {i<STEPS.length-1&&<span style={{color:"var(--text3)",fontSize:12,marginBottom:14,opacity:.4}}>──▶</span>}
+          </React.Fragment>
+        ))}
+        <div style={{marginLeft:"auto",textAlign:"right"}}>
+          <div style={{fontSize:10,color:"var(--text3)"}}>Total</div>
+          <div style={{fontSize:18,fontWeight:600,color:"var(--text)",fontVariantNumeric:"tabular-nums"}}>{total}<span style={{fontSize:12,color:"var(--text3)",fontWeight:400}}>ms</span></div>
+        </div>
+      </div>
+      {/* Proportional bar */}
+      <div style={{display:"flex",height:3,borderRadius:3,overflow:"hidden",background:"var(--bg4)",gap:1}}>
+        {STEPS.map(s=>{
+          const pct=((latencies[s.key]||0)/total)*100;
+          return <div key={s.key} title={`${s.label}: ${latencies[s.key]||0}ms`}
+            style={{width:`${pct}%`,background:s.color,minWidth:pct>0?3:0,transition:"width .4s ease"}}/>;
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Source Card ── */
+function SourceCard({source}){
+  const score=typeof source.rerank_score==="number"?source.rerank_score:null;
+  const pct=score?Math.round(score*100):0;
+  const sc=score>0.8?"var(--green)":score>0.5?"var(--amber)":"var(--text3)";
+  const fname=source.source?.split("/").pop()||source.source||"unknown";
+  return(
+    <div className="card" style={{padding:"14px",display:"flex",flexDirection:"column",gap:8,transition:"border-color .15s"}}
+      onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border3)"}
+      onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}
+    >
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:4,background:"var(--accent-bg)",color:"var(--accent)",letterSpacing:".05em"}}>SRC {source.index}</span>
+        {score!==null&&<span style={{fontSize:12,fontWeight:600,color:sc,fontVariantNumeric:"tabular-nums"}}>{score.toFixed(3)}</span>}
+      </div>
+      <div style={{fontSize:12,fontWeight:500,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{fname}</div>
+      <div style={{fontSize:11,color:"var(--text3)"}}>Page {source.page}</div>
+      {score!==null&&(
+        <div style={{height:2,background:"var(--bg4)",borderRadius:2}}>
+          <div style={{height:2,borderRadius:2,width:`${pct}%`,background:sc,transition:"width .5s ease"}}/>
+        </div>
+      )}
+      <div style={{fontSize:11,color:"var(--text3)",lineHeight:1.6,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{source.snippet}</div>
+    </div>
+  );
+}
+
+/* ── Metrics ── */
+function Metrics({trace}){
+  if(!trace) return null;
+  const items=[
+    {v:`${trace.latencies_ms?.total||0}`,suf:"ms",l:"Latency"},
+    {v:(trace.tokens?.total||0).toLocaleString(),suf:"",l:"Tokens"},
+    {v:`$${(trace.cost_usd||0).toFixed(6)}`,suf:"",l:"Est. cost"},
+    {v:(trace.tokens?.prompt||0).toLocaleString(),suf:"",l:"Prompt"},
+    {v:(trace.tokens?.completion||0).toLocaleString(),suf:"",l:"Completion"},
+  ];
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8}}>
+      {items.map(m=>(
+        <div key={m.l} style={{background:"var(--surface2)",borderRadius:"var(--r)",padding:"12px 14px",border:"1px solid var(--border)"}}>
+          <div style={{fontSize:16,fontWeight:600,color:"var(--text)",fontVariantNumeric:"tabular-nums",letterSpacing:"-.02em"}}>
+            {m.v}<span style={{fontSize:11,color:"var(--text3)",fontWeight:400}}>{m.suf}</span>
+          </div>
+          <div style={{fontSize:10,color:"var(--text3)",marginTop:3,textTransform:"uppercase",letterSpacing:".06em"}}>{m.l}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Answer text with citation badges ── */
+function AnswerText({text}){
+  if(!text) return null;
+  const parts=text.split(/(\[\d+\])/g);
+  return(
+    <p style={{fontSize:14,lineHeight:1.9,color:"var(--text)"}}>
+      {parts.map((p,i)=>{
+        const m=p.match(/^\[(\d+)\]$/);
+        if(m) return<sup key={i} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:16,height:16,fontSize:9,fontWeight:700,background:"var(--accent-bg)",color:"var(--accent)",borderRadius:4,margin:"0 2px",verticalAlign:"super",border:"1px solid rgba(124,106,247,0.3)"}}>{m[1]}</sup>;
+        return<span key={i}>{p}</span>;
+      })}
+    </p>
+  );
+}
+
+/* ── Loading animation ── */
+function LoadingState(){
+  const steps=["Vector retrieval","BM25 keyword search","RRF fusion","Cohere reranking","LLM generation"];
+  const [active,setActive]=useState(0);
+  useEffect(()=>{const id=setInterval(()=>setActive(a=>(a+1)%steps.length),600);return()=>clearInterval(id);},[]);
+  return(
+    <div className="card-glow" style={{padding:"28px 24px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+        <div style={{width:8,height:8,borderRadius:"50%",background:"var(--accent)",animation:"pulse 1s ease-in-out infinite",boxShadow:"0 0 12px var(--accent-glow)"}}/>
+        <span style={{fontSize:13,color:"var(--text2)",fontWeight:500}}>Running pipeline…</span>
+      </div>
+      {steps.map((s,i)=>(
+        <div key={s} style={{
+          display:"flex",alignItems:"center",gap:12,padding:"10px 14px",marginBottom:4,
+          borderRadius:"var(--r)",background:i<=active?"var(--accent-bg)":"var(--bg3)",
+          border:`1px solid ${i<=active?"rgba(124,106,247,0.2)":"var(--border)"}`,
+          transition:"all .3s ease",
+        }}>
+          <div style={{
+            width:16,height:16,borderRadius:"50%",flexShrink:0,
+            background:i<active?"var(--accent)":i===active?"transparent":"var(--bg4)",
+            border:i===active?"2px solid var(--accent)":"none",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            animation:i===active?"spin .8s linear infinite":"none",
+          }}>
+            {i<active&&<span style={{color:"#fff",fontSize:9,fontWeight:700}}>✓</span>}
+          </div>
+          <span style={{fontSize:12,color:i<=active?"var(--text)":"var(--text3)",fontWeight:i===active?500:400,transition:"color .3s"}}>{s}</span>
+          {i===active&&<span style={{marginLeft:"auto",fontSize:10,color:"var(--accent)"}}>running…</span>}
+          {i<active&&<span style={{marginLeft:"auto",fontSize:10,color:"var(--green)"}}>done</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   QUERY PAGE
+══════════════════════════════════════════════════ */
+function QueryPage({health}){
+  const [q,setQ]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [result,setResult]=useState(null);
+  const [error,setError]=useState(null);
+  const ref=useRef();
+
+  const ask=useCallback(async()=>{
+    const question=q.trim();
+    if(!question||loading) return;
+    if(!health||health.indexed_docs===0){setError("No documents indexed. Go to Documents and upload a PDF first.");return;}
+    setLoading(true);setError(null);setResult(null);
+    try{
+      const raw=await api.query(question);
+      const data={...raw,trace:raw.trace||{
+        run_id:Math.random().toString(36).slice(2,10),
+        latencies_ms:raw.latencies_ms||{vector:0,bm25:0,rrf:0,rerank:0,llm:0,total:0},
+        tokens:{prompt:raw.prompt_tokens||0,completion:raw.completion_tokens||0,total:raw.total_tokens||0},
+        cost_usd:raw.cost_usd||((raw.prompt_tokens||0)*0.00000005+(raw.completion_tokens||0)*0.00000008),
+      }};
+      setResult(data);
+      traceStore.unshift({query:question,...data});
+      if(traceStore.length>50)traceStore.pop();
+    }catch(e){setError(e.message);}
+    finally{setLoading(false);}
+  },[q,loading,health]);
+
+  const onKey=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();ask();}};
+
+  return(
+    <div style={{maxWidth:800,display:"flex",flexDirection:"column",gap:20}}>
+
+      {/* Header */}
+      <div>
+        <h1 style={{fontSize:22,fontWeight:600,letterSpacing:"-.02em",marginBottom:6}}>Ask a question</h1>
+        <p style={{fontSize:13,color:"var(--text3)",lineHeight:1.6}}>
+          Your query runs through a 5-stage pipeline: semantic vector search, BM25 keyword matching, reciprocal rank fusion, Cohere reranking, and cited LLM generation.
+        </p>
+      </div>
+
+      {/* Search input */}
+      <div style={{position:"relative"}}>
+        <input ref={ref} value={q} onChange={e=>setQ(e.target.value)} onKeyDown={onKey}
+          disabled={loading} placeholder="What are the key findings in this document?"
+          className="input" style={{paddingRight:120,fontSize:15}}/>
+        <button onClick={ask} disabled={loading||!q.trim()} className="btn-primary"
+          style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",padding:"7px 16px",display:"flex",alignItems:"center",gap:6,fontSize:12}}>
+          <span style={{width:12,height:12}}>{Icon.send}</span>
+          {loading?"Thinking":"Ask"}
+        </button>
+      </div>
+
+      {/* Error */}
+      {error&&(
+        <div className="fade" style={{padding:"12px 16px",borderRadius:"var(--r)",background:"var(--red-bg)",color:"var(--red)",border:"1px solid var(--red-b)",fontSize:13,display:"flex",alignItems:"center",gap:8}}>
+          <span style={{width:14,height:14,flexShrink:0}}>{Icon.x}</span>{error}
+        </div>
+      )}
+
+      {loading&&<div className="fade"><LoadingState/></div>}
+
+      {result&&!loading&&(
+        <div className="fade" style={{display:"flex",flexDirection:"column",gap:16}}>
+
+          {/* Pipeline bar */}
+          <PipelineBar latencies={result.trace?.latencies_ms}/>
+
+          {/* Answer */}
+          <div className="card-glow" style={{padding:"22px 24px"}}>
+            <div className="section-label">Answer</div>
+            <AnswerText text={result.answer}/>
+          </div>
+
+          {/* Sources */}
+          {result.sources?.length>0&&(
+            <div>
+              <div className="section-label">Retrieved sources · reranked</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>
+                {result.sources.map(s=><SourceCard key={s.index} source={s}/>)}
+              </div>
+            </div>
+          )}
+
+          {/* Observability */}
+          {result.trace&&(
+            <div>
+              <div className="section-label" style={{display:"flex",alignItems:"center",gap:8}}>
+                Observability
+                <span style={{fontSize:9,fontFamily:"monospace",background:"var(--bg4)",padding:"2px 6px",borderRadius:4,color:"var(--text3)",letterSpacing:".02em",textTransform:"none",fontWeight:400}}>
+                  run/{result.trace.run_id?.slice(0,8)}
+                </span>
+              </div>
+              <Metrics trace={result.trace}/>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   DOCUMENTS PAGE
+══════════════════════════════════════════════════ */
+function DocumentsPage({onUpload}){
+  const [docs,setDocs]=useState([]);
+  const [uploading,setUploading]=useState(false);
+  const [msg,setMsg]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [drag,setDrag]=useState(false);
+  const fileRef=useRef();
+
+  const loadDocs=useCallback(async()=>{
+    try{const d=await api.documents();setDocs(Array.isArray(d)?d:d.documents||[]);}
+    catch(e){setMsg({ok:false,text:`Could not load: ${e.message}`});}
+    finally{setLoading(false);}
+  },[]);
+  useEffect(()=>{loadDocs();},[loadDocs]);
+
+  const handleFile=async file=>{
+    if(!file?.name.endsWith(".pdf")){setMsg({ok:false,text:"Only PDF files are supported."});return;}
+    setUploading(true);setMsg(null);
+    try{
+      const res=await api.upload(file);
+      const r0=res.results?.[0]||res;
+      setMsg({ok:true,text:`"${r0.filename||file.name}" indexed — ${r0.pages||"?"} pages, ${r0.chunks||"?"} chunks`});
+      await loadDocs();onUpload?.();
+    }catch(e){setMsg({ok:false,text:e.message});}
+    finally{setUploading(false);}
+  };
+
+  const handleDelete=async id=>{
+    if(!confirm("Remove this document from the index?"))return;
+    try{await api.deleteDoc(id);await loadDocs();onUpload?.();}
+    catch(e){setMsg({ok:false,text:e.message});}
+  };
+
+  return(
+    <div style={{maxWidth:660,display:"flex",flexDirection:"column",gap:24}}>
+      <div>
+        <h1 style={{fontSize:22,fontWeight:600,letterSpacing:"-.02em",marginBottom:6}}>Documents</h1>
+        <p style={{fontSize:13,color:"var(--text3)",lineHeight:1.6}}>Upload PDFs — each is chunked, embedded, and dual-indexed into ChromaDB and Elasticsearch for hybrid retrieval.</p>
+      </div>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={e=>{e.preventDefault();setDrag(true);}}
+        onDragLeave={()=>setDrag(false)}
+        onDrop={e=>{e.preventDefault();setDrag(false);handleFile(e.dataTransfer.files[0]);}}
+        onClick={()=>!uploading&&fileRef.current?.click()}
+        style={{
+          border:`1.5px dashed ${drag?"var(--accent)":"var(--border2)"}`,
+          borderRadius:"var(--rxl)",padding:"44px 32px",textAlign:"center",
+          cursor:uploading?"wait":"pointer",
+          background:drag?"var(--accent-bg)":"var(--surface)",
+          transition:"all .2s",
+          boxShadow:drag?"0 0 40px var(--accent-glow)":"none",
+        }}
+      >
+        <input ref={fileRef} type="file" accept=".pdf" style={{display:"none"}}
+          onChange={e=>{if(e.target.files[0])handleFile(e.target.files[0]);}}/>
+        <div style={{width:40,height:40,margin:"0 auto 14px",padding:10,borderRadius:"50%",
+          background:drag?"var(--accent-bg)":"var(--bg4)",
+          border:`1px solid ${drag?"rgba(124,106,247,0.4)":"var(--border2)"}`,
+          color:drag?"var(--accent)":"var(--text3)",transition:"all .2s"}}>
+          {Icon.upload}
+        </div>
+        <div style={{fontSize:14,color:uploading?"var(--accent)":"var(--text)",fontWeight:500,marginBottom:4}}>
+          {uploading?"Indexing document…":"Drop a PDF here or click to browse"}
+        </div>
+        <div style={{fontSize:12,color:"var(--text3)"}}>
+          {uploading?"Chunking + embedding + storing in ChromaDB & Elasticsearch":"Supports PDF files · Multiple uploads allowed"}
+        </div>
+      </div>
+
+      {msg&&(
+        <div className="fade" style={{padding:"12px 16px",borderRadius:"var(--r)",fontSize:13,
+          background:msg.ok?"var(--green-bg)":"var(--red-bg)",
+          color:msg.ok?"var(--green-t)":"var(--red)",
+          border:`1px solid ${msg.ok?"rgba(34,201,138,0.25)":"var(--red-b)"}`,
+          display:"flex",alignItems:"center",gap:8}}>
+          <span style={{width:14,height:14,flexShrink:0}}>{msg.ok?Icon.check:Icon.x}</span>
+          {msg.text}
+        </div>
+      )}
+
+      <div>
+        <div className="section-label">Indexed documents · {docs.length}</div>
+        {loading?(
+          <div style={{fontSize:13,color:"var(--text3)",padding:"20px 0"}}>Loading…</div>
+        ):docs.length===0?(
+          <div className="card" style={{padding:"32px",textAlign:"center",color:"var(--text3)",fontSize:13}}>
+            No documents indexed yet. Upload a PDF above to get started.
+          </div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {docs.map(d=>(
+              <div key={d.id||d.filename} className="card" style={{
+                display:"flex",alignItems:"center",gap:14,padding:"14px 16px",
+                transition:"border-color .15s",
+              }}
+                onMouseEnter={e=>e.currentTarget.style.borderColor="var(--border3)"}
+                onMouseLeave={e=>e.currentTarget.style.borderColor="var(--border)"}
+              >
+                <div style={{width:34,height:34,borderRadius:8,background:"var(--blue-bg)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--blue)",flexShrink:0}}>
+                  <span style={{width:16,height:16}}>{Icon.file}</span>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.filename}</div>
+                  <div style={{fontSize:11,color:"var(--text3)",marginTop:2}}>
+                    {d.pages||"?"} pages · {d.chunks||"?"} chunks
+                    {d.uploaded_at&&` · ${new Date(d.uploaded_at).toLocaleDateString()}`}
+                  </div>
+                </div>
+                <button onClick={()=>handleDelete(d.id)} className="btn-ghost"
+                  style={{padding:"6px 10px",color:"var(--red)",borderColor:"transparent",display:"flex",alignItems:"center",gap:5,fontSize:12}}>
+                  <span style={{width:12,height:12}}>{Icon.trash}</span>Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   EVAL PAGE
+══════════════════════════════════════════════════ */
+const THRESHOLD=0.70;
+function ScoreGauge({value,label}){
+  const pct=Math.round(value*100);
+  const passed=value>=THRESHOLD;
+  const color=passed?"var(--green)":"var(--red)";
+  return(
+    <div className="card" style={{padding:"22px 24px",display:"flex",flexDirection:"column",gap:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{label}</span>
+        <span className={`chip ${passed?"tag-pass":"tag-fail"}`}>
+          <span style={{width:11,height:11}}>{passed?Icon.check:Icon.x}</span>
+          {passed?"Pass":"Fail"}
+        </span>
+      </div>
+      <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+        <span style={{fontSize:42,fontWeight:700,color:"var(--text)",letterSpacing:"-.03em",fontVariantNumeric:"tabular-nums",lineHeight:1}}>{value.toFixed(4)}</span>
+        <span style={{fontSize:14,color:"var(--text3)",fontWeight:400}}>/1.0</span>
+      </div>
+      <div style={{height:6,background:"var(--bg4)",borderRadius:3,overflow:"hidden"}}>
+        <div style={{height:6,borderRadius:3,width:`${pct}%`,background:color,transition:"width .6s ease",
+          boxShadow:passed?`0 0 10px ${color}60`:"none"}}/>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--text3)"}}>
+        <span>Threshold: {THRESHOLD.toFixed(2)}</span>
+        <span style={{fontWeight:500,color:passed?"var(--green)":"var(--red)"}}>{pct}%</span>
+      </div>
+    </div>
+  );
+}
+function EvalPage(){
+  const [data,setData]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState(null);
+  const load=useCallback(async()=>{
+    setLoading(true);setError(null);
+    try{setData(await api.evalLatest());}
+    catch(e){if(e.message.includes("404")||e.message.toLowerCase().includes("no eval"))setData(null);else setError(e.message);}
+    finally{setLoading(false);}
+  },[]);
+  useEffect(()=>{load();},[load]);
+  const allPassed=data?Object.values(data.scores).every(v=>v>=THRESHOLD):false;
+  return(
+    <div style={{maxWidth:680,display:"flex",flexDirection:"column",gap:24}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div>
+          <h1 style={{fontSize:22,fontWeight:600,letterSpacing:"-.02em",marginBottom:6}}>RAGAS Evaluation</h1>
+          <p style={{fontSize:13,color:"var(--text3)",lineHeight:1.6}}>Faithfulness + Answer Relevancy scored by Groq · threshold {THRESHOLD}</p>
+        </div>
+        <button onClick={load} disabled={loading} className="btn-ghost" style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{width:12,height:12,display:"inline-block",animation:loading?"spin .8s linear infinite":"none"}}>{Icon.refresh}</span>Refresh
+        </button>
+      </div>
+
+      <div style={{padding:"12px 16px",borderRadius:"var(--r)",background:"var(--surface)",border:"1px solid var(--border)",fontFamily:"monospace",fontSize:12,color:"var(--text3)",lineHeight:1.8}}>
+        <div style={{color:"var(--text2)",marginBottom:2,fontFamily:"inherit",fontWeight:500,fontSize:11,textTransform:"uppercase",letterSpacing:".06em"}}>Run locally</div>
+        python eval/run_ragas_eval.py --threshold {THRESHOLD}
+      </div>
+
+      {error&&<div style={{padding:"12px 16px",borderRadius:"var(--r)",background:"var(--red-bg)",color:"var(--red)",border:"1px solid var(--red-b)",fontSize:13}}>{error}</div>}
+      {loading&&<div style={{fontSize:13,color:"var(--text3)"}}>Loading latest results…</div>}
+
+      {!loading&&!data&&!error&&(
+        <div className="card" style={{padding:"48px",textAlign:"center"}}>
+          <div style={{width:48,height:48,margin:"0 auto 16px",padding:12,borderRadius:"50%",background:"var(--purple-bg)",color:"var(--purple)",border:"1px solid rgba(167,139,250,0.2)"}}>
+            {Icon.flask}
+          </div>
+          <div style={{fontSize:14,color:"var(--text2)",fontWeight:500,marginBottom:6}}>No evaluation results yet</div>
+          <div style={{fontSize:12,color:"var(--text3)"}}>Run <code style={{background:"var(--bg4)",padding:"2px 7px",borderRadius:5,fontSize:11}}>python eval/run_ragas_eval.py</code> to generate results</div>
+        </div>
+      )}
+
+      {data&&!loading&&(
+        <div className="fade" style={{display:"flex",flexDirection:"column",gap:16}}>
+          <div style={{fontSize:11,color:"var(--text3)"}}>
+            Last run: {data.timestamp?new Date(data.timestamp.replace(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/,"$1-$2-$3T$4:$5:$6")).toLocaleString():"unknown"}
+          </div>
+          <div style={{padding:"16px 20px",borderRadius:"var(--r)",
+            background:allPassed?"var(--green-bg)":"var(--red-bg)",
+            border:`1px solid ${allPassed?"rgba(34,201,138,0.25)":"var(--red-b)"}`,
+            display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:32,height:32,borderRadius:"50%",background:allPassed?"rgba(34,201,138,0.15)":"rgba(248,113,113,0.15)",display:"flex",alignItems:"center",justifyContent:"center",color:allPassed?"var(--green)":"var(--red)",flexShrink:0}}>
+              <span style={{width:16,height:16}}>{allPassed?Icon.check:Icon.x}</span>
+            </div>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:allPassed?"var(--green-t)":"var(--red)"}}>
+                CI gate {allPassed?"passes ✓":"fails ✗"}
+              </div>
+              <div style={{fontSize:11,color:"var(--text3)",marginTop:2}}>
+                GitHub Actions exits {allPassed?"0 — build continues":"1 — PR blocked"}
+              </div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12}}>
+            {Object.entries(data.scores).map(([metric,score])=>(
+              <ScoreGauge key={metric} value={score} label={metric.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase())}/>
+            ))}
+          </div>
+          <div className="card" style={{padding:"14px 16px",fontSize:12,color:"var(--text2)",lineHeight:1.8}}>
+            <strong style={{color:"var(--text)"}}>Faithfulness</strong> — are all claims in the answer grounded in the retrieved context?<br/>
+            <strong style={{color:"var(--text)"}}>Answer Relevancy</strong> — does the answer actually address what was asked?
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   TRACES PAGE
+══════════════════════════════════════════════════ */
+const STEP_COLORS={vector:"var(--blue)",bm25:"var(--green)",rrf:"var(--purple)",rerank:"var(--amber)",llm:"var(--accent)"};
+function TraceRow({item}){
+  const [open,setOpen]=useState(false);
+  const t=item.trace;
+  return(
+    <div className="card" style={{overflow:"hidden",transition:"border-color .15s"}}
+      onMouseEnter={e=>!open&&(e.currentTarget.style.borderColor="var(--border3)")}
+      onMouseLeave={e=>!open&&(e.currentTarget.style.borderColor="var(--border)")}>
+      <button onClick={()=>setOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"transparent",textAlign:"left"}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.query}</div>
+          <div style={{fontSize:10,color:"var(--text3)",marginTop:2,fontFamily:"monospace",letterSpacing:".03em"}}>{t?.run_id?.slice(0,8)??""}</div>
+        </div>
+        <div style={{display:"flex",gap:16,flexShrink:0,alignItems:"center"}}>
+          <span style={{fontSize:12,color:"var(--text2)",fontVariantNumeric:"tabular-nums"}}>{t?.latencies_ms?.total||"?"}ms</span>
+          <span style={{fontSize:12,color:"var(--text3)"}}>{(t?.tokens?.total||0).toLocaleString()} tok</span>
+          <span style={{fontSize:12,color:"var(--text3)"}}>${(t?.cost_usd||0).toFixed(6)}</span>
+        </div>
+        <span style={{color:"var(--text3)",fontSize:13,transform:open?"rotate(90deg)":"none",transition:"transform .15s",flexShrink:0}}>›</span>
+      </button>
+      {open&&(
+        <div style={{borderTop:"1px solid var(--border)",padding:"16px",display:"flex",flexDirection:"column",gap:14}}>
+          {t?.latencies_ms&&(
+            <div>
+              <div className="section-label">Latency breakdown</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {Object.entries(t.latencies_ms).filter(([k])=>k!=="total").map(([step,ms])=>{
+                  const pct=t.latencies_ms.total>0?(ms/t.latencies_ms.total)*100:0;
+                  return(
+                    <div key={step} style={{display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:11,color:"var(--text2)",width:52,flexShrink:0}}>{step}</span>
+                      <div style={{flex:1,height:4,background:"var(--bg4)",borderRadius:2}}>
+                        <div style={{height:4,borderRadius:2,width:`${pct}%`,background:STEP_COLORS[step]||"var(--text3)",transition:"width .4s ease",boxShadow:`0 0 6px ${STEP_COLORS[step]||"transparent"}40`}}/>
+                      </div>
+                      <span style={{fontSize:11,color:"var(--text3)",width:44,textAlign:"right",fontVariantNumeric:"tabular-nums"}}>{ms}ms</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <div>
+            <div className="section-label">Answer preview</div>
+            <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.7,display:"-webkit-box",WebkitLineClamp:3,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{item.answer}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function TracesPage(){
+  const [,tick]=useState(0);
+  useEffect(()=>{const id=setInterval(()=>tick(n=>n+1),2000);return()=>clearInterval(id);},[]);
+  const traces=traceStore;
+  const avg=traces.length?Math.round(traces.reduce((a,t)=>a+(t.trace?.latencies_ms?.total||0),0)/traces.length):0;
+  const totalT=traces.reduce((a,t)=>a+(t.trace?.tokens?.total||0),0);
+  const totalC=traces.reduce((a,t)=>a+(t.trace?.cost_usd||0),0);
+  return(
+    <div style={{maxWidth:800,display:"flex",flexDirection:"column",gap:20}}>
+      <div>
+        <h1 style={{fontSize:22,fontWeight:600,letterSpacing:"-.02em",marginBottom:6}}>Traces</h1>
+        <p style={{fontSize:13,color:"var(--text3)"}}>Per-request observability — latency breakdown, token usage, and cost. Session only.</p>
+      </div>
+      {traces.length===0?(
+        <div className="card" style={{padding:"48px",textAlign:"center",color:"var(--text3)",fontSize:13}}>
+          No traces yet. Ask a question and observability data will appear here.
+        </div>
+      ):(
+        <>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:8}}>
+            {[{v:traces.length,l:"Queries"},{v:`${avg}ms`,l:"Avg latency"},{v:totalT.toLocaleString(),l:"Total tokens"},{v:`$${totalC.toFixed(5)}`,l:"Session cost"}].map(m=>(
+              <div key={m.l} style={{background:"var(--surface2)",borderRadius:"var(--r)",padding:"12px 14px",border:"1px solid var(--border)"}}>
+                <div style={{fontSize:18,fontWeight:600,color:"var(--text)",fontVariantNumeric:"tabular-nums",letterSpacing:"-.02em"}}>{m.v}</div>
+                <div style={{fontSize:10,color:"var(--text3)",marginTop:3,textTransform:"uppercase",letterSpacing:".06em"}}>{m.l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {traces.map((t,i)=><TraceRow key={i} item={t}/>)}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   ROOT APP
+══════════════════════════════════════════════════ */
+const PAGE_META={
+  query:     {title:"Query",      sub:"Ask questions, get cited answers"},
+  documents: {title:"Documents",  sub:"Manage indexed PDF documents"},
+  eval:      {title:"Evaluation", sub:"RAGAS quality metrics & CI gate status"},
+  traces:    {title:"Traces",     sub:"Per-request observability data"},
+};
+const PAGES={query:QueryPage,documents:DocumentsPage,eval:EvalPage,traces:TracesPage};
+
+function App(){
+  const [page,setPage]=useState("query");
+  const [health,setHealth]=useState({status:"unknown",indexed_docs:0});
+  const poll=useCallback(async()=>{
+    try{
+      const h=await api.health();
+      if(h.indexed_docs===0){
+        try{const d=await api.documents();const docs=Array.isArray(d)?d:d.documents||[];h.indexed_docs=docs.length;}catch{}
+      }
+      setHealth(h);
+    }catch{setHealth({status:"error",indexed_docs:0});}
+  },[]);
+  useEffect(()=>{poll();const id=setInterval(poll,8000);return()=>clearInterval(id);},[poll]);
+  const Page=PAGES[page]||QueryPage;
+  const meta=PAGE_META[page];
+  return(
+    <div className="layout">
+      <Sidebar page={page} setPage={setPage} health={health}/>
+      <div className="main">
+        <div className="topbar">
+          <div>
+            <div className="topbar-title">{meta.title}</div>
+            <div className="topbar-sub">{meta.sub}</div>
+          </div>
+          {health.status==="ok"&&(
+            <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--green)",background:"var(--green-bg)",padding:"5px 10px",borderRadius:20,border:"1px solid rgba(34,201,138,0.2)"}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:"var(--green)",animation:"pulse 2s ease-in-out infinite",boxShadow:"0 0 6px rgba(34,201,138,0.5)"}}/>
+              API online
+            </div>
+          )}
+        </div>
+        <div className="content">
+          <Page health={health} onUpload={poll}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "timestamp": "20260409T140842",
+  "dataset": "eval/test_dataset.json",
+  "scores": {
+    "faithfulness": NaN,
+    "answer_relevancy": NaN
+  },
+  "num_samples": 4,
+  "samples": [
+    {
+      "question": "What is Dev Mahesh Batta's current educational institution?",
+      "answer": "Stub answer for: What is Dev Mahesh Batta's current educational institution?",
+      "ground_truth": "DA V Institute Of Engineering and Technology",
+      "contexts": [
+        "This is a placeholder context for testing purposes."
+      ]
+    },
+    {
+      "question": "What programming languages were used in the Doctor Consultation Web Application project?",
+      "answer": "Stub answer for: What programming languages were used in the Doctor Consultation Web Application project?",
+      "ground_truth": "Python, Flask",
+      "contexts": [
+        "This is a placeholder context for testing purposes."
+      ]
+    },
+    {
+      "question": "What percentage of manual coordination overhead was reduced by the real-time patient-doctor consultation platform?",
+      "answer": "Stub answer for: What percentage of manual coordination overhead was reduced by the real-time patient-doctor consultation platform?",
+      "ground_truth": "80%",
+      "contexts": [
+        "This is a placeholder context for testing purposes."
+      ]
+    },
+    {
+      "question": "When did the user complete the HackerRank Python(Basics) certification?",
+      "answer": "Stub answer for: When did the user complete the HackerRank Python(Basics) certification?",
+      "ground_truth": "Jul 2024",
+      "contexts": [
+        "This is a placeholder context for testing purposes."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+# ------------------------
+# 🔹 Python (Backend)
+# ------------------------
+venv/
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# ------------------------
+# 🔹 Environment Variables
+# ------------------------
+.env
+.env.*
+
+# ------------------------
+# 🔹 Logs
+# ------------------------
+*.log
+
+# ------------------------
+# 🔹 Node (Frontend)
+# ------------------------
+node_modules/
+frontend/node_modules/
+
+# Build files
+frontend/build/
+dist/
+
+# ------------------------
+# 🔹 OS Files
+# ------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------
+# 🔹 IDE
+# ------------------------
+.vscode/
+.idea/
+
+# ------------------------
+# 🔹 Large AI / Model Files (IMPORTANT)
+# ------------------------
+*.bin
+*.pt
+*.pth
+*.h5
+
+# ------------------------
+# 🔹 Database / Vector DB
+# ------------------------
+chroma/
+*.db
+*.sqlite
+
+# ------------------------
+# 🔹 Misc
+# ------------------------
+*.zip
+*.tar

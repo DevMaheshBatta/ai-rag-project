@@ -1,0 +1,176 @@
+name: RAG Evaluation CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  RAGAS_THRESHOLD: "0.70"
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 1: Lint & unit tests
+  # ────────────────────────────────────────────────────────────────────────────
+  lint-and-test:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest ruff
+
+      - name: Lint with ruff
+        run: ruff check . --ignore E501
+
+      - name: Run unit tests
+        run: pytest tests/ -v --tb=short
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 2: RAGAS Evaluation Gate
+  # ────────────────────────────────────────────────────────────────────────────
+  ragas-eval:
+    name: RAGAS Evaluation Gate
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Cache test dataset
+        uses: actions/cache@v4
+        id: dataset-cache
+        with:
+          path: eval/test_dataset.json
+          key: test-dataset-${{ hashFiles('data/**') }}
+          restore-keys: test-dataset-
+
+      - name: Generate test dataset (if not cached)
+        if: steps.dataset-cache.outputs.cache-hit != 'true'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DOCS_DIR: data/
+          NUM_QA_PAIRS: "20"
+        run: python eval/create_test_dataset.py
+
+      - name: Run RAGAS evaluation
+        id: ragas
+        env:
+          GROQ_API_KEY:      ${{ secrets.GROQ_API_KEY }}
+          GOOGLE_API_KEY:    ${{ secrets.GOOGLE_API_KEY }}   # ← Gemini judge
+          COHERE_API_KEY:    ${{ secrets.COHERE_API_KEY }}
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          RAGAS_THRESHOLD:   ${{ env.RAGAS_THRESHOLD }}
+        run: |
+          python eval/run_ragas_eval.py \
+            --dataset eval/test_dataset.json \
+            --threshold ${{ env.RAGAS_THRESHOLD }}
+
+      - name: Upload RAGAS results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragas-results-${{ github.run_id }}
+          path: eval/results/
+          retention-days: 30
+
+      - name: Post scores to PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const latest = JSON.parse(fs.readFileSync('eval/results/latest.json', 'utf8'));
+            const scores = latest.scores;
+            const threshold = parseFloat(process.env.RAGAS_THRESHOLD);
+
+            const rows = Object.entries(scores)
+              .map(([k, v]) => `| ${k} | ${v.toFixed(4)} | ${v >= threshold ? '✅' : '❌'} |`)
+              .join('\n');
+
+            const body = `## 🤖 RAGAS Evaluation Results\n\n| Metric | Score | Status |\n|--------|-------|--------|\n${rows}\n\n**Threshold:** ${threshold}\n**Judge:** Gemini 1.5 Flash\n**Timestamp:** ${latest.timestamp}`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+        env:
+          RAGAS_THRESHOLD: ${{ env.RAGAS_THRESHOLD }}
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 3: Regression check vs committed baseline
+  # ────────────────────────────────────────────────────────────────────────────
+  regression-check:
+    name: Score Regression Check
+    runs-on: ubuntu-latest
+    needs: ragas-eval
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download current results
+        uses: actions/download-artifact@v4
+        with:
+          name: ragas-results-${{ github.run_id }}
+          path: eval/results/current/
+
+      - name: Check for regression
+        run: |
+          python - <<'EOF'
+          import json, sys, os
+
+          current_path = "eval/results/current/latest.json"
+          baseline_path = "eval/results/baseline.json"
+
+          if not os.path.exists(baseline_path):
+              print("No baseline found — skipping regression check.")
+              sys.exit(0)
+
+          with open(current_path) as f:
+              current = json.load(f)["scores"]
+          with open(baseline_path) as f:
+              baseline = json.load(f)["scores"]
+
+          REGRESSION_TOLERANCE = 0.05
+          failed = False
+          for metric in baseline:
+              base_score = baseline[metric]
+              curr_score = current.get(metric, 0)
+              drop = base_score - curr_score
+              if drop > REGRESSION_TOLERANCE:
+                  print(f"❌ REGRESSION: {metric} dropped {drop:.4f} ({base_score:.4f} → {curr_score:.4f})")
+                  failed = True
+              else:
+                  print(f"✅ {metric}: {curr_score:.4f} (baseline {base_score:.4f})")
+
+          if failed:
+              print("\nBuild FAILED due to score regression.")
+              sys.exit(1)
+          else:
+              print("\nNo regressions detected ✅")
+          EOF

@@ -1,0 +1,154 @@
+# .github/workflows/eval.yml
+#
+# CI GATE — Phase 7
+# Runs the RAGAS evaluation on every push to main and every PR.
+# Fails the build if faithfulness or answer_relevancy drops below threshold.
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   GROQ_API_KEY   — your Groq API key
+#   COHERE_API_KEY — your Cohere API key
+
+name: RAG Evaluation Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  evaluate:
+    name: RAGAS quality gate
+    runs-on: ubuntu-latest
+
+    services:
+      # Spin up Elasticsearch so BM25 retrieval works during eval
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: -Xms512m -Xmx512m
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -sf http://localhost:9200/_cluster/health || exit 1"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 10
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python setup ───────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ── 3. Cache pip deps ─────────────────────────────────────────────────────
+      # WHY cache: sentence-transformers + torch are 1-2 GB — caching cuts 4min off CI
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # ── 4. Cache HuggingFace model ────────────────────────────────────────────
+      # WHY: all-MiniLM-L6-v2 downloads ~80MB on first run — cache after that
+      - name: Cache HuggingFace model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-minilm-l6-v2
+
+      # ── 5. Install dependencies ───────────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ── 6. Write .env from secrets ────────────────────────────────────────────
+      # WHY not export directly: your code uses load_dotenv() from python-dotenv
+      - name: Create .env file
+        run: |
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"     >> .env
+          echo "COHERE_API_KEY=${{ secrets.COHERE_API_KEY }}" >> .env
+          echo "RAG_PDF_PATH=data/sample.pdf"                  >> .env
+          echo "RAGAS_THRESHOLD=0.70"                          >> .env
+
+      # ── 7. Wait for Elasticsearch ─────────────────────────────────────────────
+      - name: Wait for Elasticsearch to be ready
+        run: |
+          for i in $(seq 1 15); do
+            curl -sf http://localhost:9200/_cluster/health && break
+            echo "Waiting for ES... attempt $i"
+            sleep 5
+          done
+
+      # ── 8. Run RAGAS evaluation ───────────────────────────────────────────────
+      # --threshold 0.70 : fail if any metric < 0.70
+      # Exit code 1 from run_ragas_eval.py → CI step fails → build blocked
+      - name: Run RAGAS evaluation
+        run: |
+          python eval/run_ragas_eval.py \
+            --dataset eval/test_dataset.json \
+            --threshold 0.70
+        env:
+          PYTHONPATH: .
+
+      # ── 9. Upload results as artifact ─────────────────────────────────────────
+      # WHY: lets you download the full JSON report from the Actions run page
+      - name: Upload eval results
+        if: always()   # upload even if eval fails — you want to see WHY it failed
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragas-results-${{ github.run_number }}
+          path: eval/results/
+          retention-days: 30
+
+      # ── 10. Post score summary to PR ──────────────────────────────────────────
+      # WHY: reviewers can see scores without downloading the artifact
+      - name: Post scores to PR summary
+        if: always()
+        run: |
+          python - << 'PYEOF'
+          import json, os
+          from pathlib import Path
+
+          p = Path("eval/results/latest.json")
+          if not p.exists():
+              print("No results file found.")
+              exit(0)
+
+          data   = json.loads(p.read_text())
+          scores = data.get("scores", {})
+          thresh = 0.70
+          lines  = ["## RAGAS Evaluation Results\n"]
+          lines.append(f"| Metric | Score | Status |")
+          lines.append(f"|--------|-------|--------|")
+
+          all_pass = True
+          for metric, score in scores.items():
+              passed = score >= thresh
+              if not passed:
+                  all_pass = False
+              status = "✅ Pass" if passed else "❌ Fail"
+              lines.append(f"| {metric} | {score:.4f} | {status} |")
+
+          lines.append(f"\n**Threshold:** {thresh}  ")
+          lines.append(f"**Overall:** {'✅ All metrics passed' if all_pass else '❌ Build blocked — metric(s) below threshold'}")
+
+          summary = "\n".join(lines)
+          print(summary)
+
+          # Write to GitHub Step Summary (visible on Actions run page)
+          summary_file = os.environ.get("GITHUB_STEP_SUMMARY", "")
+          if summary_file:
+              with open(summary_file, "a") as f:
+                  f.write(summary + "\n")
+          PYEOF
