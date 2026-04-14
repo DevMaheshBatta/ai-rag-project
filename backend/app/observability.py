@@ -23,7 +23,6 @@ import uuid
 from datetime import datetime, timezone
 from contextlib import contextmanager
 from dataclasses import dataclass, field, asdict
-from typing import Optional
 
 from app.config import (
     LANGSMITH_API_KEY,
@@ -233,7 +232,7 @@ def print_trace_summary(trace: QueryTrace):
     print(f"{'─'*60}")
 
     # Per-step latencies
-    print(f"  Latency breakdown:")
+    print("  Latency breakdown:")
     for step in trace.steps:
         bar_len  = int(step.latency_ms / 20)   # 1 char = 20ms
         bar      = "█" * min(bar_len, 40)
@@ -241,7 +240,7 @@ def print_trace_summary(trace: QueryTrace):
     print(f"    {'TOTAL':<22} {trace.total_latency_ms:>8.1f} ms")
 
     # Tokens + cost
-    print(f"\n  Token usage:")
+    print("\n  Token usage:")
     print(f"    Prompt tokens:          {trace.prompt_tokens:>6}")
     print(f"    Completion tokens:      {trace.completion_tokens:>6}")
     print(f"    Total tokens:           {trace.total_tokens:>6}")

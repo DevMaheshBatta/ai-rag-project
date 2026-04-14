@@ -5,12 +5,9 @@ import uvicorn
 
 from app.routers import upload, query, documents
 from app.state import rag_state
-from fastapi import APIRouter, HTTPException
+from fastapi import HTTPException
 import json
 from pathlib import Path
-import json
-from pathlib import Path
-from fastapi import HTTPException          # already imported probably
 from fastapi.staticfiles import StaticFiles
 
 # ─────────────────────────────────────────

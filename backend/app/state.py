@@ -8,7 +8,6 @@ Holds:
   - _doc_registry     (in-memory list of indexed docs for GET /documents)
 """
 
-import uuid
 from langchain_chroma import Chroma          # pip install langchain-chroma
 from app.rag import create_embeddings, get_llm
 

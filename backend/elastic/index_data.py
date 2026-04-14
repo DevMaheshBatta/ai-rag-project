@@ -31,7 +31,7 @@ def create_index():
             print("Elasticsearch index already exists ⚡")
 
     except RequestError as e:
-        print(f"❌ Elasticsearch rejected the request")
+        print("❌ Elasticsearch rejected the request")
         print(f"Reason: {e.info if hasattr(e, 'info') else e}")
     except Exception as e:
         print(f"Unexpected error creating index: {e}")
