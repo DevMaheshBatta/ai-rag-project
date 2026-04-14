@@ -9,6 +9,8 @@ from fastapi import HTTPException
 import json
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
+from fastapi import UploadFile, File
+from typing import List
 
 # ─────────────────────────────────────────
 # Startup / Shutdown (Lifespan)
@@ -66,8 +68,7 @@ def health():
         "status": "ok",
         "indexed_docs": rag_state.document_count()
     }
-from fastapi import UploadFile, File
-from typing import List
+
 
 @app.post("/test-upload")
 async def test_upload(files: List[UploadFile] = File(...)):
