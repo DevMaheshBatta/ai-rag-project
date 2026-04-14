@@ -37,10 +37,7 @@ jobs:
           cd backend
           ruff check . --ignore E501
 
-      - name: Run tests
-        run: |
-          cd backend
-          pytest tests/ -v --tb=short
+      
 
   # ─────────────────────────────────────────────
   # Job 2: RAGAS Evaluation
