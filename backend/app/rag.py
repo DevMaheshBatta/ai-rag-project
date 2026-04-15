@@ -16,7 +16,7 @@ from langchain_community.vectorstores import Chroma
 from groq import Groq
 import os
 from dotenv import load_dotenv
-
+from langchain_community.embeddings import FastEmbedEmbeddings
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
@@ -32,10 +32,10 @@ def chunk_documents(documents: list):
     ).split_documents(documents)
 
 
+
+
 def create_embeddings():
-    return HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
+    return FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 
 
 def create_vector_store(chunks: list, embeddings, persist_dir: str = "db"):
