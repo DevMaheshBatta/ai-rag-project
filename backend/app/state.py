@@ -8,36 +8,20 @@ Holds:
   - _doc_registry     (in-memory list of indexed docs for GET /documents)
 """
 
-from langchain_chroma import Chroma          # pip install langchain-chroma
 from app.rag import get_llm
 
 
 class RAGState:
     def __init__(self):
-        self.embeddings  = None
-        self.vector_db   = None
-        self.llm         = None
-        self._doc_registry: list[dict] = []  # [{id, filename, path, pages, chunks}]
+        self.embeddings = None
+        self.vector_db = None
+        self.llm = None
+        self._doc_registry: list[dict] = []
 
     # ── Called once by FastAPI lifespan ───────────────────────────────────────
     def startup(self):
-        print("🚀 Starting RAG system...")
-
-        print("[RAG] Loading embedding model...")
-       # self.embeddings = create_embeddings()
-
-        print("[RAG] Connecting to ChromaDB...")
-        # persist_directory keeps data between restarts
-        #self.vector_db = Chroma(
-         #   persist_directory  = "db",
-          #  embedding_function = self.embeddings,
-       # )
-
         print("[RAG] Connecting to Groq...")
         self.llm = get_llm()
-
-        count = self.vector_db._collection.count()
-        print(f"[RAG] Ready — {count} chunks in store ✅")
         print("✅ RAG system ready")
 
     # ── Called by upload router ───────────────────────────────────────────────
@@ -49,20 +33,18 @@ class RAGState:
         if self.vector_db is None:
             raise RuntimeError("RAGState not initialised — call startup() first.")
 
-        # Attach doc_id to every chunk's metadata so we can find+delete them later
         for chunk in chunks:
-            chunk.metadata["doc_id"]  = doc_id
+            chunk.metadata["doc_id"] = doc_id
             chunk.metadata["doc_name"] = filename
 
         self.vector_db.add_documents(chunks)
 
-        # Register in memory so GET /documents can list it
         self._doc_registry.append({
-            "id":       doc_id,
+            "id": doc_id,
             "filename": filename,
-            "path":     path,
-            "pages":    len(set(c.metadata.get("page", 0) for c in chunks)),
-            "chunks":   len(chunks),
+            "path": path,
+            "pages": len(set(c.metadata.get("page", 0) for c in chunks)),
+            "chunks": len(chunks),
         })
 
     # ── Called by documents router ────────────────────────────────────────────
@@ -72,7 +54,6 @@ class RAGState:
     def remove_doc(self, doc_id: str) -> bool:
         """Delete all chunks with this doc_id from ChromaDB and the registry."""
         try:
-            # ChromaDB: delete by metadata filter
             self.vector_db._collection.delete(
                 where={"doc_id": {"$eq": doc_id}}
             )
@@ -84,7 +65,7 @@ class RAGState:
             print(f"[RAG] remove_doc error: {e}")
             return False
 
-    # ── Called by query router ────────────────────────────────────────────────
+    # ── Called by health check ────────────────────────────────────────────────
     def document_count(self) -> int:
         return len(self._doc_registry)
 
