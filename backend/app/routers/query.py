@@ -16,24 +16,24 @@ router = APIRouter()
 
 
 class QueryRequest(BaseModel):
-    question: str  = Field(..., min_length=3, example="What is the main topic of the document?")
-    k:        int  = Field(5, ge=1, le=20, description="Number of chunks to retrieve")
+    question: str = Field(..., min_length=3, example="What is the main topic of the document?")
+    k:        int = Field(5, ge=1, le=20, description="Number of chunks to retrieve")
 
 
 class Source(BaseModel):
-    index:  int
-    source: str
-    page:   int | str
+    index:   int
+    source:  str
+    page:    int | str
     snippet: str
 
 
 class QueryResponse(BaseModel):
-    question:         str
-    answer:           str
-    sources:          list[Source]
-    prompt_tokens:    int
+    question:          str
+    answer:            str
+    sources:           list[Source]
+    prompt_tokens:     int
     completion_tokens: int
-    total_tokens:     int
+    total_tokens:      int
 
 
 @router.post(
@@ -42,18 +42,11 @@ class QueryResponse(BaseModel):
     response_model=QueryResponse,
 )
 def ask_question(body: QueryRequest):
-    """
-    Retrieve relevant chunks from ChromaDB and generate a cited answer via Groq.
-    Requires at least one document to be uploaded first.
-    """
-    if rag_state.vector_db is None:
-        raise HTTPException(503, "RAG pipeline not initialised.")
-
     if rag_state.document_count() == 0:
         raise HTTPException(400, "No documents indexed yet. Upload a PDF first via POST /upload.")
 
     # ── Retrieve ──────────────────────────────────────────────────────────────
-    retriever = rag_state.vector_db.as_retriever(search_kwargs={"k": body.k})
+    retriever = rag_state.get_retriever(k=body.k)
     docs      = retriever.invoke(body.question)
     docs      = [d for d in docs if len(d.page_content.strip()) > 50][:3]
 
