@@ -24,7 +24,7 @@ class RAGState:
         print("🚀 Starting RAG system...")
 
         print("[RAG] Loading embedding model...")
-        self.embeddings = create_embeddings()
+       # self.embeddings = create_embeddings()
 
         print("[RAG] Connecting to ChromaDB...")
         # persist_directory keeps data between restarts
