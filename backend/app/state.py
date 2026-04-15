@@ -9,7 +9,7 @@ Holds:
 """
 
 from langchain_chroma import Chroma          # pip install langchain-chroma
-from app.rag import create_embeddings, get_llm
+from app.rag import get_llm
 
 
 class RAGState:
