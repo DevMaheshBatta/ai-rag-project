@@ -1,4 +1,4 @@
-from app.rag import get_llm, create_embeddings, create_vector_store, get_retriever
+from app.rag import get_llm, create_embeddings, create_vector_store
 
 class RAGState:
     def __init__(self):
@@ -16,10 +16,7 @@ class RAGState:
         self.llm = get_llm()
         print("✅ RAG system ready")
 
-    def get_retriever(self, k: int = 5):
-        if self.vector_db is None:
-            raise RuntimeError("RAGState not initialised.")
-        return self.vector_db.as_retriever(search_kwargs={"k": k})
+    
 
     def add_documents(self, doc_id: str, filename: str, path: str, chunks: list):
         if self.vector_db is None:

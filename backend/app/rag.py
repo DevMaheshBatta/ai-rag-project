@@ -11,7 +11,7 @@ answer_question() is the standalone entry point for eval / testing.
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings        # ✅ fixed deprecation
+       # ✅ fixed deprecation
 from langchain_community.vectorstores import Chroma
 from groq import Groq
 import os
@@ -37,10 +37,12 @@ def chunk_documents(documents: list):
 def create_embeddings():
     return FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 
-
 def create_vector_store(chunks: list, embeddings, persist_dir: str = "db"):
     if os.path.exists(persist_dir) and os.listdir(persist_dir):
         print("Loading existing ChromaDB ⚡")
+        return Chroma(persist_directory=persist_dir, embedding_function=embeddings)
+    if not chunks:
+        # Empty init — no documents yet
         return Chroma(persist_directory=persist_dir, embedding_function=embeddings)
     print("Creating new ChromaDB 🔨")
     return Chroma.from_documents(
@@ -167,14 +169,5 @@ def answer_question(query: str) -> dict:
     _init_pipeline()
     result = generate_answer(query, _retriever, _llm)
     return {"answer": result["answer"], "contexts": result["contexts"]}
-def create_vector_store(chunks: list, embeddings, persist_dir: str = "db"):
-    if os.path.exists(persist_dir) and os.listdir(persist_dir):
-        print("Loading existing ChromaDB ⚡")
-        return Chroma(persist_directory=persist_dir, embedding_function=embeddings)
-    if not chunks:
-        # Empty init — no documents yet
-        return Chroma(persist_directory=persist_dir, embedding_function=embeddings)
-    print("Creating new ChromaDB 🔨")
-    return Chroma.from_documents(
-        documents=chunks, embedding=embeddings, persist_directory=persist_dir
-    )
+
+
