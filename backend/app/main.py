@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+import asyncio
 import json
 from pathlib import Path
 from typing import List
@@ -9,21 +10,16 @@ from app.routers import upload, query, documents
 from app.state import rag_state
 
 
-# ─────────────────────────────────────────
-# Startup / Shutdown (Lifespan)
-# ─────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Starting RAG system...")
-    rag_state.startup()
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, rag_state.startup)
     print("✅ RAG system ready")
     yield
     print("🛑 Shutting down...")
 
 
-# ─────────────────────────────────────────
-# FastAPI App
-# ─────────────────────────────────────────
 app = FastAPI(
     title="RAG Document API",
     description="Upload PDFs and query using RAG (Groq + ChromaDB)",
@@ -31,9 +27,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ─────────────────────────────────────────
-# CORS
-# ─────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,17 +35,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─────────────────────────────────────────
-# Routers
-# ─────────────────────────────────────────
 app.include_router(upload.router, prefix="/upload", tags=["Upload"])
 app.include_router(query.router, prefix="/query", tags=["Query"])
 app.include_router(documents.router, prefix="/documents", tags=["Documents"])
 
 
-# ─────────────────────────────────────────
-# Health Check
-# ─────────────────────────────────────────
 @app.get("/health", tags=["Health"])
 def health():
     return {
@@ -68,11 +55,11 @@ async def test_upload(files: List[UploadFile] = File(...)):
 
 @app.get("/eval/latest", tags=["Evaluation"])
 def eval_latest():
-    """
-    Serves eval/results/latest.json — written by run_ragas_eval.py.
-    The frontend EvalPage reads this to show RAGAS scores.
-    """
     p = Path("eval/results/latest.json")
     if not p.exists():
         raise HTTPException(404, "No eval results yet. Run: python eval/run_ragas_eval.py")
     return json.loads(p.read_text())
+
+
+if __name__ == "__main__":
+    pass
