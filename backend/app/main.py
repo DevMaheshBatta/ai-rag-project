@@ -38,7 +38,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-#app.mount("/app", StaticFiles(directory="frontend", html=True), name="frontend")
+
 # ─────────────────────────────────────────
 # CORS (for frontend later)
 # ─────────────────────────────────────────
