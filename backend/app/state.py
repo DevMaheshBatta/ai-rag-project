@@ -28,10 +28,10 @@ class RAGState:
 
         print("[RAG] Connecting to ChromaDB...")
         # persist_directory keeps data between restarts
-        self.vector_db = Chroma(
-            persist_directory  = "db",
-            embedding_function = self.embeddings,
-        )
+        #self.vector_db = Chroma(
+         #   persist_directory  = "db",
+          #  embedding_function = self.embeddings,
+       # )
 
         print("[RAG] Connecting to Groq...")
         self.llm = get_llm()
