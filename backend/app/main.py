@@ -1,16 +1,13 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
+import json
+from pathlib import Path
+from typing import List
 
 from app.routers import upload, query, documents
 from app.state import rag_state
-from fastapi import HTTPException
-import json
-from pathlib import Path
 
-from fastapi import UploadFile, File
-from typing import List
 
 # ─────────────────────────────────────────
 # Startup / Shutdown (Lifespan)
@@ -18,13 +15,9 @@ from typing import List
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Starting RAG system...")
-
-    # Initialize vector DB, embeddings, retriever
     rag_state.startup()
-
     print("✅ RAG system ready")
     yield
-
     print("🛑 Shutting down...")
 
 
@@ -38,9 +31,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-#app.mount("/app", StaticFiles(directory="frontend", html=True), name="frontend")
 # ─────────────────────────────────────────
-# CORS (for frontend later)
+# CORS
 # ─────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
@@ -49,7 +41,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # ─────────────────────────────────────────
 # Routers
@@ -66,13 +57,14 @@ app.include_router(documents.router, prefix="/documents", tags=["Documents"])
 def health():
     return {
         "status": "ok",
-        "indexed_docs": rag_state.document_count()
+        "indexed_docs": rag_state.document_count(),
     }
 
 
 @app.post("/test-upload")
 async def test_upload(files: List[UploadFile] = File(...)):
     return {"message": "working"}
+
 
 @app.get("/eval/latest", tags=["Evaluation"])
 def eval_latest():
@@ -84,10 +76,3 @@ def eval_latest():
     if not p.exists():
         raise HTTPException(404, "No eval results yet. Run: python eval/run_ragas_eval.py")
     return json.loads(p.read_text())
- 
-# ─────────────────────────────────────────
-# Run Server
-# ─────────────────────────────────────────
-if __name__ == "__main__":
-    
-   # uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
