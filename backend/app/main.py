@@ -8,7 +8,7 @@ from app.state import rag_state
 from fastapi import HTTPException
 import json
 from pathlib import Path
-from fastapi.staticfiles import StaticFiles
+
 from fastapi import UploadFile, File
 from typing import List
 
