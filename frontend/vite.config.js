@@ -8,7 +8,7 @@ export default defineConfig({
     // Proxy all /api calls to FastAPI — no CORS issues in dev
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://ai-rag-project-hfxp.onrender.com',
         changeOrigin: true,
         rewrite: path => path.replace(/^\/api/, '')
       }
