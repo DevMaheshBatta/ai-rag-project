@@ -177,7 +177,7 @@ body::before{
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback} = React;
-const API = window.RAG_API_BASE || "http://localhost:8000";
+const API = window.RAG_API_BASE || "https://ai-rag-project-hfxp.onrender.com";
 
 async function req(method,path,body,isForm=false){
   const headers=isForm?{}:{"Content-Type":"application/json"};
